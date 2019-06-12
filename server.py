@@ -1,4 +1,4 @@
-from flask import Flask, session
+from flask import Flask, session, render_template
 from flask_restplus import Api, Resource, fields
 from toolbox import *
 
@@ -9,7 +9,8 @@ RUN_WERKZEUG = True
 # Flask app and api declarations
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
-api = Api(app)
+api = Api(app, version='1.0', title='Trafake Server API',
+    description='Endpoints - register | login | submiturl | getPool | resetPool')
 
 
 if not RUN_WERKZEUG:
@@ -28,7 +29,13 @@ a_url = api.model('AddToPool', {'url':  fields.String()})
 @app.route('/status', methods=['GET','POST'])
 def index():
     pool = returnUrlsOnly(urlPool)
-    return str(urlPool)
+    urlPool_arrayConvert = []
+    print(urlPool)
+    for item in urlPool:
+        item = json.loads(item)
+        urlPool_arrayConvert.append([item['user'], item['url']])
+
+    return render_template("index.html", text=urlPool_arrayConvert)
 
 
 
@@ -116,4 +123,4 @@ if __name__ == '__main__':
 
     urlPool = []
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5555)
