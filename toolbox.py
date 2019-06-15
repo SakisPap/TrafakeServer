@@ -9,6 +9,10 @@ def passwordHasher(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 
+def authenticateUser(username, password):
+    return checkIfUserExists(username) and loginUserCheck(username, password)
+
+
 def checkIfUserExists(username):
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()

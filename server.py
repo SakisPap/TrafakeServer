@@ -1,4 +1,4 @@
-from flask import Flask, session, render_template
+from flask import Flask, session, render_template, request
 from flask_restplus import Api, Resource, fields
 from toolbox import *
 
@@ -22,7 +22,8 @@ if not RUN_WERKZEUG:
 
 a_register = api.model('Register', {'username':  fields.String(), 'password': fields.String()})
 a_login = api.model('Login', {'username':  fields.String(), 'password': fields.String()})
-a_url = api.model('AddToPool', {'url':  fields.String()})
+a_url = api.model('AddToPool', {'username':  fields.String(), 'password': fields.String(), 'url':  fields.String()})
+a_auth_request = api.model('Authenticate', {'username':  fields.String(), 'password': fields.String()})
 
 
 
@@ -48,7 +49,7 @@ class Register(Resource):
         password = passwordHasher(api.payload['password'])
         if not checkIfUserExists(username):
            registerUser(username=username, password=password)
-           return {'status': 'registrationSuccessful'}, 200
+           return {'token': 'registrationSuccessful'}, 200
 
         else:
             return {'status': 'alreadyRegistered'}, 200
@@ -63,7 +64,6 @@ class Session(Resource):
         print(" [API] Got user session request ")
         if checkIfUserExists(username):
             if loginUserCheck(username=username, password=password):
-                session['username'] = username
                 return {'status': 'loginSuccess'}, 200
             else:
                 return {'status': 'wrongCreds'}, 500
@@ -76,9 +76,10 @@ class Session(Resource):
     @api.expect(a_url)
     def post(self):
         url = api.payload['url']
+        username = api.payload['username']
+        password = passwordHasher(api.payload['password'])
         print(" [API] Got submit url request ")
-        if 'username' in session:
-            username = session['username']
+        if authenticateUser(username, password):
             if url not in returnUrlsOnly(urlPool):
                 urlPool.append(json.dumps({"user": username, "url": url}))
             return {'status': 'submissionSuccess'}, 200
@@ -88,8 +89,11 @@ class Session(Resource):
 
 @api.route('/getPool')
 class Session(Resource):
-    def get(self):
-        if 'username' in session:
+    @api.expect(a_auth_request)
+    def post(self):
+        username = api.payload['username']
+        password = passwordHasher(api.payload['password'])
+        if authenticateUser(username, password):
             pool = returnUrlsOnly(urlPool)
             return {'pool': pool}, 200
         else:
@@ -98,16 +102,21 @@ class Session(Resource):
 
 @api.route('/resetPool')
 class Session(Resource):
-    def get(self):
-        if 'username' in session:
+    @api.expect(a_auth_request)
+    def post(self):
+        username = api.payload['username']
+        password = passwordHasher(api.payload['password'])
+        if authenticateUser(username, password):
             try:
                 for row in urlPool:
-                    if json.loads(row)["user"] == session['username']:
+                    if json.loads(row)["user"] == username:
                         urlPool.remove(row)
                     session.pop('username')
             except Exception as e:
                 print(e)
-        return {'status': 'resetSuccessful'}
+            return {'status': 'resetSuccessful'}
+        else:
+            return {'status': 'notInSession'}, 500
 
 
 if __name__ == '__main__':
