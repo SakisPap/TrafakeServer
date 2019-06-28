@@ -80,7 +80,7 @@ class Session(Resource):
         password = passwordHasher(api.payload['password'])
         print(" [API] Got submit url request ")
         if authenticateUser(username, password):
-            if url not in returnUrlsOnly(urlPool):
+            if (url not in returnUrlsOnly(urlPool)) and (username not in returnUsersOnly(urlPool)):
                 urlPool.append(json.dumps({"user": username, "url": url}))
             return {'status': 'submissionSuccess'}, 200
         else:
@@ -111,7 +111,6 @@ class Session(Resource):
                 for row in urlPool:
                     if json.loads(row)["user"] == username:
                         urlPool.remove(row)
-                    session.pop('username')
             except Exception as e:
                 print(e)
             return {'status': 'resetSuccessful'}

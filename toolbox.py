@@ -63,6 +63,15 @@ def returnUrlsOnly(urlPool):
     return pool
 
 
+def returnUsersOnly(urlPool):
+    pool = []
+    for item in urlPool:
+        item = json.loads(item)
+        pool.append(item["user"])
+
+    return pool
+
+
 
 
 
